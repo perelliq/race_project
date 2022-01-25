@@ -24,6 +24,7 @@ def load_image(name, colorkey=None):
         print(f"Файл с изображением '{fullname}' не найден")
         sys.exit()
     image = pygame.image.load(fullname)
+
     if colorkey is not None:
         image = image.convert()
         if colorkey == -1:
@@ -38,6 +39,7 @@ def print_text(message="", x=0, y=0, font_color='black', font_size=30, frame_col
     font_type = pygame.font.Font(None, font_size)
     text = font_type.render(message, True, font_color)
     screen.blit(text, (x, y))
+
     if frame_color:
         pygame.draw.rect(screen, frame_color, (
             x - frame_indent, y - frame_indent, text.get_rect()[2] + frame_indent * 2,
@@ -49,6 +51,7 @@ def print_text(message="", x=0, y=0, font_color='black', font_size=30, frame_col
 class AnimatedSprite(pygame.sprite.Sprite):
     def __init__(self, sheet, columns, rows, x, y):
         super().__init__(all_sprites)
+
         self.frames = []
         self.cut_sheet(sheet, columns, rows)
         self.cur_frame = 0
@@ -83,15 +86,25 @@ def start_screen():
     car_sprites.add(car)
     car_sprites.draw(screen)
     car_sprites.update()
+
     play_button = Button(car_sprites)
 
     work = True
     pygame.FONCHANGE = pygame.USEREVENT + 1
     y1_snow, y2_snow = 0, -HEIGHT
     x_car = 1280
+
     screen.blit(pygame.transform.scale(load_image('snow.png'), (WIDTH, HEIGHT)), (0, y1_snow))
     screen.blit(pygame.transform.scale(load_image('snow.png'), (WIDTH, HEIGHT)), (0, y2_snow))
     screen.blit(pygame.transform.scale(load_image('snow.png'), (WIDTH, HEIGHT)), (0, y2_snow))
+
+    cur.execute('SELECT * FROM score')
+    values = cur.fetchall()
+
+    # max_score = max(values)
+    # print(max_score[0])
+    #
+    # print_text(str(max_score[0]), 1000, 100, 'black', 50)
 
     while work:
         clock.tick(10)
@@ -99,7 +112,7 @@ def start_screen():
 
         screen.blit(play_button.image1, (0, 0))
         screen.blit(play_button.image2, (0, 200))
-        screen.blit(play_button.image3, (800, 10))
+        # screen.blit(play_button.image3, (800, 10))
 
         y1_snow = y1_snow + speed if y1_snow < HEIGHT else -HEIGHT + speed
         y2_snow = y2_snow + speed if y2_snow < HEIGHT else -HEIGHT + speed
@@ -131,10 +144,10 @@ def start_screen():
 def score(result):
     con = sqlite3.connect("Race project")
     cur = con.cursor()
-    cur.execute("CREATE TABLE IF NOT EXISTS score(score integer)")
+    cur.execute("CREATE TABLE IF NOT EXISTS records (score integer)")
     con.commit()
-    cur.execute("SELECT score FROM score")
-    cur.execute(f"INSERT INTO score VALUES ('{result}')")
+    cur.execute("SELECT score FROM records")
+    cur.execute(f"INSERT INTO records VALUES ('{result}')")
     con.commit()
 
 
@@ -216,6 +229,7 @@ def shop():
         screen.blit(pygame.transform.scale(load_image('shop_fon4.jpg'), (WIDTH, HEIGHT)), (0, 0))
         cars_draw(last_choice)
         coins_draw()
+
         # кнопка выхода в главное меню
         exit_bords = print_text('Выход', 0, 0, 'red', 50, 'red', 20, 5)
         return exit_bords
@@ -282,6 +296,7 @@ class Start(pygame.sprite.Sprite):
         super().__init__(*groups)
         self.image = load_image("car_start.png")
         self.image = pygame.transform.scale(self.image, (526, 422))
+
         self.rect = self.image.get_rect()
         self.rect.x = 1000
         self.rect.y = 550
@@ -298,17 +313,17 @@ class Button(pygame.sprite.Sprite):
         super().__init__(*groups)
         self.image1 = load_image("play_button.png")
         self.image2 = load_image("shop_button.png")
-        self.image3 = load_image("record and score.png")
+        # self.image3 = load_image("record and score.png")
 
         self.image1 = pygame.transform.scale(self.image1, (350, 200))
         self.image2 = pygame.transform.scale(self.image2, (350, 200))
-        self.image3 = pygame.transform.scale(self.image3, (200, 450))
+        # self.image3 = pygame.transform.scale(self.image3, (200, 450))
 
         self.rect1 = self.image1.get_rect()
         self.rect2 = self.image2.get_rect()
-        self.rect3 = self.image3.get_rect()
+        # self.rect3 = self.image3.get_rect()
 
-        self.image3 = pygame.transform.rotate(self.image3, 90)
+        # self.image3 = pygame.transform.rotate(self.image3, 90)
 
     def blit(self):
         screen.blit(self.image, self.rect)
@@ -319,6 +334,7 @@ class Coins(pygame.sprite.Sprite):
         super().__init__(*groups)
         con = sqlite3.connect("Race project")
         cur = con.cursor()
+
         #    img = load_image('truck.png')
         imgs = cur.execute("""SELECT link FROM car_icons ORDER BY price""").fetchall()
         # print(imgs[random.randint(0, len(imgs) - 1)][0] + '.png')
@@ -346,10 +362,12 @@ class Truck(pygame.sprite.Sprite):
         cur = con.cursor()
         imgs = list(cur.execute("""SELECT link FROM car_icons WHERE status != "choosed" ORDER BY price """).fetchall())
         imgs.append(['truck'])
+
         # print(imgs[random.randint(0, len(imgs) - 1)][0] + '.png')
         self.image_name = imgs[random.randint(0, len(imgs) - 1)][0] + '.png'
         self.image = pygame.transform.scale(load_image(self.image_name), (256, 256))
         self.image = pygame.transform.rotate(self.image, 270 if self.image_name != 'truck.png' else 180)
+
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
         self.rect.x = WIDTH
@@ -370,6 +388,7 @@ class Truck(pygame.sprite.Sprite):
 class Car(pygame.sprite.Sprite):
     con = sqlite3.connect("Race project")
     cur = con.cursor()
+
     image = load_image(cur.execute("""SELECT link FROM car_icons WHERE status == 'choosed' """).fetchone()[0] + '.png')
     image = pygame.transform.rotate(image, 90)
 
@@ -377,6 +396,7 @@ class Car(pygame.sprite.Sprite):
         super().__init__(*groups)
         self.image = Car.image
         self.image = pygame.transform.scale(self.image, (256, 256))
+
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
         self.heart = 3
@@ -416,6 +436,7 @@ start_screen()
 pygame.mixer.music.stop()
 pygame.mixer.music.load("data/music.mp3")
 pygame.mixer.music.play(-1)
+
 # создание объектов
 all_sprites = pygame.sprite.Group()
 
@@ -427,11 +448,13 @@ x1_road, x2_road = 0, WIDTH
 x1_snow, y1_snow, x2_snow, y2_snow, x3_snow, y3_snow, x4_snow, y4_snow, = 0, 0, -WIDTH, -HEIGHT, 0, -HEIGHT, WIDTH, 0
 time_count = 0
 metres = 0
+
 MYEVENTTYPE = pygame.USEREVENT + 1
 TIMEREVENT = pygame.USEREVENT + 2
-pygame.time.set_timer(MYEVENTTYPE, 10000)
+pygame.time.set_timer(MYEVENTTYPE, random.randint(2000, 6000))
 pygame.time.set_timer(TIMEREVENT, 1000)
 running = True
+
 fon = pygame.transform.scale(load_image('fon_race.png', None), (WIDTH, 1000))
 road = pygame.transform.scale(load_image('fon_race.png', None), (WIDTH, 1000))
 while running:
